@@ -4,7 +4,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
-import dbConnect from "./config/db";
+import dbConnect from "./db";
 import routerApp from "./routers";
 
 dotenv.config();

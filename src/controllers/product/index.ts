@@ -19,7 +19,7 @@ const getById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await Products.findById(req.params.id).exec();
     if (isEmpty(data)) {
-      return res.status(500).json({
+      return res.status(404).json({
         error: "Product not found",
       });
     }
@@ -84,7 +84,7 @@ const remove = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await Products.findOne({ _id: req.params.id });
     if (isEmpty(data)) {
-      return res.status(500).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Product not found" });
     }
     await Products.deleteOne({ _id: req.params.id });
     res.status(200).json({ message: "Ok" });
