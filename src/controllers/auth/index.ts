@@ -1,14 +1,14 @@
 import { NextFunction, Response, Request } from "express";
 import User from "../../models/user";
 import Token from "../../models/token";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { isEmpty, omit } from "lodash";
 import { sendEmail } from "../../utils/sendEmail";
 import { tokenT } from "../../types/token";
 
-const JWTSecret = process.env.JWT_SECRET;
+const JWTSecret = process.env.JWT_SECRET as string;
 const bcryptSalt = process.env.BCRYPT_SALT;
 const clientURL = "http://localhost:3030";
 
@@ -122,8 +122,15 @@ const forgotPassword = async (
     if (token) {
       await token.deleteOne();
     }
-
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetToken = jwt.sign(
+      { tokenResetPass: crypto.randomBytes(32).toString("hex") },
+      "bezkoder-secret-key",
+      {
+        algorithm: "HS256",
+        allowInsecureKeySizes: true,
+        expiresIn: 86400, // 24 hours
+      }
+    );
 
     await new Token({
       userId: user._id,
@@ -133,7 +140,7 @@ const forgotPassword = async (
 
     const link = `${clientURL}/reset-password?token=${resetToken}&id=${user._id}`;
 
-    await sendEmail(
+    sendEmail(
       email,
       "Password Reset Request",
       {
@@ -158,28 +165,33 @@ const resetPassword = async (
   const userResetToken: tokenT | null = await Token.findOne({ userId: userId });
   if (!userResetToken) {
     return res.status(400).json({
-      error: "Invalid or expired password reset token 1",
+      error: "Invalid user",
     });
   }
-  const isValid = bcrypt.compareSync(accessToken,userResetToken.token);
-  if (!isValid) {
-    return res.status(400).json({
-      error: "Invalid or expired password reset token 2",
-    });
-  }
-  jwt.verify(accessToken, "bezkoder-secret-key", (err: any) => {
+  bcrypt.compare(accessToken, userResetToken.token, (err, same) => {
     if (err) {
-      return res.status(401).json({
-        message: "Unauthorized!",
+      return res.status(400).json({
+        error: "Invalid token",
       });
-    } 
+    }
+    jwt.verify(accessToken, "bezkoder-secret-key", (err: any) => {
+      if (err) {
+        return res.status(401).json({
+          message: "Unauthorized!",
+        });
+      }
+    });
   });
+
   try {
     await User.updateOne(
       { _id: userId },
       { $set: { password: bcrypt.hashSync(password, 8) } },
       { new: true }
     );
+    res.status(200).json({
+      message: "Reset password success !",
+    });
   } catch (error) {
     res.status(500).json(error);
     next();

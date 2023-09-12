@@ -18,13 +18,13 @@ const sendEmail = (
   try {
     // create reusable transporter object using the default SMTP transport
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      host: 'smtp.gmail.com',
+      service: "gmail",
+      host: "smtp.gmail.com",
       port: 465,
       secure: true,
       auth: {
-        user: "levantung2k01@gmail.com",
-        pass: "drzyienyvxnhsmtd", // naturally, replace both with your real credentials or an application-specific password
+        user: "tungshopman@gmail.com",
+        pass: "cvwxivxuxnlisdoi", // naturally, replace both with your real credentials or an application-specific password
       },
     });
 
@@ -32,7 +32,7 @@ const sendEmail = (
     const compiledTemplate = handlebars.compile(source);
     const options = () => {
       return {
-        from: "levantung2k01@gmail.com",
+        from: "tungshopman@gmail.com",
         to: email,
         subject: subject,
         html: compiledTemplate(payload),
@@ -52,7 +52,7 @@ const sendEmail = (
     });
   } catch (error) {
     return res.status(400).json({
-      error: error
+      error: error,
     });
   }
 };
