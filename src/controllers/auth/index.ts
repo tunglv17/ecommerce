@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { isEmpty, omit } from "lodash";
 import { sendEmail } from "../../utils/sendEmail";
 import { tokenT } from "../../types/token";
+import { User as UserT } from "../../types/user";
 
 const JWTSecret = process.env.JWT_SECRET as string;
 const bcryptSalt = process.env.BCRYPT_SALT;
@@ -63,40 +64,38 @@ const authenticate = async (
   try {
     if (strategy === "jwt") {
       const { user }: any = jwt.verify(accessToken, "bezkoder-secret-key");
-      res.status(200).json({
+      return res.status(200).json({
         user: user,
         accessToken: accessToken,
       });
-    } else {
-      const user = await User.findOne({ email: email });
-      if (isEmpty(user)) {
-        return res.status(400).json({
-          error: "User does not exist",
-        });
-      }
-
-      const passwordIsValid = bcrypt.compareSync(
-        req.body.password,
-        user.password
-      );
-
-      if (!passwordIsValid) {
-        return res.status(401).json({
-          message: "Incorrect password!",
-        });
-      }
-      const responseUser = omit(user, ["password"]);
-      const token = jwt.sign({ user: responseUser }, "bezkoder-secret-key", {
-        algorithm: "HS256",
-        allowInsecureKeySizes: true,
-        expiresIn: 86400, // 24 hours
-      });
-
-      res.status(200).json({
-        user: responseUser,
-        accessToken: token,
+    }
+    const user = await User.findOne({ email: email });
+    if (isEmpty(user)) {
+      return res.status(400).json({
+        error: "User does not exist",
       });
     }
+
+    const passwordIsValid = bcrypt.compareSync(
+      req.body.password,
+      user.password
+    );
+
+    if (!passwordIsValid) {
+      return res.status(401).json({
+        message: "Incorrect password!",
+      });
+    }
+    const responseUser = omit(user, ["password"]);
+    const token = jwt.sign({ user: responseUser }, "bezkoder-secret-key", {
+      algorithm: "HS256",
+      allowInsecureKeySizes: true,
+      expiresIn: 86400, // 24 hours
+    });
+     res.status(200).json({
+      user: responseUser,
+      accessToken: token,
+    });
   } catch (error) {
     res.status(500).json(error);
     next();
@@ -112,6 +111,7 @@ const forgotPassword = async (
 
   try {
     const user: any = await User.findOne({ email: email });
+
     if (isEmpty(user)) {
       return res.status(400).json({
         error: "User already exists",
@@ -122,6 +122,7 @@ const forgotPassword = async (
     if (token) {
       await token.deleteOne();
     }
+
     const resetToken = jwt.sign(
       { tokenResetPass: crypto.randomBytes(32).toString("hex") },
       "bezkoder-secret-key",
@@ -144,7 +145,6 @@ const forgotPassword = async (
       email,
       "Password Reset Request",
       {
-        name: user.name,
         link: link,
       },
       "../../utils/sendEmail/template/resetPassword.handlebars",
@@ -162,13 +162,13 @@ const resetPassword = async (
   next: NextFunction
 ) => {
   const { accessToken, userId, password } = req.body;
-  const userResetToken: tokenT | null = await Token.findOne({ userId: userId });
-  if (!userResetToken) {
+  const token: tokenT | null = await Token.findOne({ userId: userId });
+  if (!token) {
     return res.status(400).json({
       error: "Invalid user",
     });
   }
-  bcrypt.compare(accessToken, userResetToken.token, (err, same) => {
+  bcrypt.compare(accessToken, token.token, (err) => {
     if (err) {
       return res.status(400).json({
         error: "Invalid token",
@@ -189,9 +189,26 @@ const resetPassword = async (
       { $set: { password: bcrypt.hashSync(password, 8) } },
       { new: true }
     );
+   const user : UserT | null  = await User.findById({_id: userId})
     res.status(200).json({
       message: "Reset password success !",
     });
+    if(!user){
+     return res.status(200).json({
+        message: "User not found!",
+      });
+    }
+
+    sendEmail(
+      user?.email,
+      "Password Reset Successfully",
+      {
+        name: user?.fullName,
+      },
+      "../../utils/sendEmail/template/verifyResetPassword.handlebars",
+      res,
+    );
+    await Token.deleteOne({ _id: token._id });
   } catch (error) {
     res.status(500).json(error);
     next();

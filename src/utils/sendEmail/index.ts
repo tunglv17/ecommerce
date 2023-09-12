@@ -5,8 +5,8 @@ import path from "path";
 import { Response } from "express";
 
 type PayloadT = {
-  name: string;
-  link: string;
+  link?: string;
+  name?: string;
 };
 const sendEmail = (
   email: string,
