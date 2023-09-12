@@ -6,6 +6,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { isEmpty, omit } from "lodash";
 import { sendEmail } from "../../utils/sendEmail";
+import { tokenT } from "../../types/token";
 
 const JWTSecret = process.env.JWT_SECRET;
 const bcryptSalt = process.env.BCRYPT_SALT;
@@ -102,7 +103,7 @@ const authenticate = async (
   }
 };
 
-const resetPassword = async (
+const forgotPassword = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -116,7 +117,6 @@ const resetPassword = async (
         error: "User already exists",
       });
     }
-    console.log("!");
 
     const token = await Token.findOne({ userId: user._id });
     if (token) {
@@ -131,11 +131,9 @@ const resetPassword = async (
       createdAt: Date.now(),
     }).save();
 
-    const link = `${clientURL}/passwordReset?token=${resetToken}&id=${user._id}`;
+    const link = `${clientURL}/reset-password?token=${resetToken}&id=${user._id}`;
 
-    console.log("resetToken", resetToken);
-
-    sendEmail(
+    await sendEmail(
       email,
       "Password Reset Request",
       {
@@ -145,13 +143,47 @@ const resetPassword = async (
       "../../utils/sendEmail/template/resetPassword.handlebars",
       res
     );
-    res.status(200).json({
-      message: "Successfully!",
-    });
   } catch (error) {
     res.status(500).json(error);
     next();
   }
 };
 
-export { getAll, signup, authenticate, resetPassword };
+const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { accessToken, userId, password } = req.body;
+  const userResetToken: tokenT | null = await Token.findOne({ userId: userId });
+  if (!userResetToken) {
+    return res.status(400).json({
+      error: "Invalid or expired password reset token 1",
+    });
+  }
+  const isValid = bcrypt.compareSync(accessToken,userResetToken.token);
+  if (!isValid) {
+    return res.status(400).json({
+      error: "Invalid or expired password reset token 2",
+    });
+  }
+  jwt.verify(accessToken, "bezkoder-secret-key", (err: any) => {
+    if (err) {
+      return res.status(401).json({
+        message: "Unauthorized!",
+      });
+    } 
+  });
+  try {
+    await User.updateOne(
+      { _id: userId },
+      { $set: { password: bcrypt.hashSync(password, 8) } },
+      { new: true }
+    );
+  } catch (error) {
+    res.status(500).json(error);
+    next();
+  }
+};
+
+export { getAll, signup, authenticate, forgotPassword, resetPassword };

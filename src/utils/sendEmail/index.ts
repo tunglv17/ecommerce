@@ -8,7 +8,7 @@ type PayloadT = {
   name: string;
   link: string;
 };
-const sendEmail = async (
+const sendEmail = (
   email: string,
   subject: string,
   payload: PayloadT,
@@ -16,14 +16,15 @@ const sendEmail = async (
   res: Response
 ) => {
   try {
-    console.log("email", email);
     // create reusable transporter object using the default SMTP transport
     const transporter = nodemailer.createTransport({
-      // host: "http://localhost:3030",
+      service: 'gmail',
+      host: 'smtp.gmail.com',
       port: 465,
+      secure: true,
       auth: {
-        user: "tunglv@reactplus.com",
-        pass: "17122001tT", // naturally, replace both with your real credentials or an application-specific password
+        user: "levantung2k01@gmail.com",
+        pass: "drzyienyvxnhsmtd", // naturally, replace both with your real credentials or an application-specific password
       },
     });
 
@@ -31,7 +32,7 @@ const sendEmail = async (
     const compiledTemplate = handlebars.compile(source);
     const options = () => {
       return {
-        from: "tunglv@reactplus.com",
+        from: "levantung2k01@gmail.com",
         to: email,
         subject: subject,
         html: compiledTemplate(payload),
@@ -40,8 +41,9 @@ const sendEmail = async (
     // Send email
     transporter.sendMail(options(), (error, info) => {
       if (error) {
-        console.log("error", error);
-        return error;
+        return res.status(400).json({
+          error: error,
+        });
       } else {
         return res.status(200).json({
           success: "Success",
@@ -49,8 +51,9 @@ const sendEmail = async (
       }
     });
   } catch (error) {
-    console.log("error", error);
-    return error;
+    return res.status(400).json({
+      error: error
+    });
   }
 };
 

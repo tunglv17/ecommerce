@@ -31,7 +31,7 @@ const getById = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const create = async (req: Request, res: Response, next: NextFunction) => {
-  const { name, thumbnail, price, images, description, category_id } = req.body;
+  const { name, thumbnail, price, images, description, categoryId } = req.body;
 
   try {
     if (
@@ -40,7 +40,7 @@ const create = async (req: Request, res: Response, next: NextFunction) => {
       !price ||
       !images ||
       !description ||
-      !category_id
+      !categoryId
     ) {
       return res.status(400).json({
         error: "Field is required",
