@@ -92,7 +92,7 @@ const authenticate = async (
       allowInsecureKeySizes: true,
       expiresIn: 86400, // 24 hours
     });
-     res.status(200).json({
+    res.status(200).json({
       user: responseUser,
       accessToken: token,
     });
@@ -140,16 +140,16 @@ const forgotPassword = async (
     }).save();
 
     const link = `${clientURL}/reset-password?token=${resetToken}&id=${user._id}`;
-
-    sendEmail(
-      email,
-      "Password Reset Request",
-      {
+    const dataSendMail = {
+      type: "forgotPassword",
+      email: email,
+      payload: {
         link: link,
       },
-      "../../utils/sendEmail/template/resetPassword.handlebars",
-      res
-    );
+      res: res,
+    };
+
+    sendEmail(dataSendMail);
   } catch (error) {
     res.status(500).json(error);
     next();
@@ -189,25 +189,24 @@ const resetPassword = async (
       { $set: { password: bcrypt.hashSync(password, 8) } },
       { new: true }
     );
-   const user : UserT | null  = await User.findById({_id: userId})
-    res.status(200).json({
-      message: "Reset password success !",
-    });
-    if(!user){
-     return res.status(200).json({
+    const user: UserT | null = await User.findById({ _id: userId });
+    if (!user) {
+      return res.status(401).json({
         message: "User not found!",
       });
     }
-
-    sendEmail(
-      user?.email,
-      "Password Reset Successfully",
-      {
+    res.status(200).json({
+      message: "Reset password success !",
+    });
+    const dataSendMail = {
+      type: "resetPassword",
+      email: user.email,
+      payload: {
         name: user?.fullName,
       },
-      "../../utils/sendEmail/template/verifyResetPassword.handlebars",
-      res,
-    );
+      res: res,
+    };
+    sendEmail(dataSendMail);
     await Token.deleteOne({ _id: token._id });
   } catch (error) {
     res.status(500).json(error);

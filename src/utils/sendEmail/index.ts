@@ -8,13 +8,13 @@ type PayloadT = {
   link?: string;
   name?: string;
 };
-const sendEmail = (
-  email: string,
-  subject: string,
-  payload: PayloadT,
-  template: any,
-  res: Response
-) => {
+type dataSendEmail = {
+  type: string;
+  email: string;
+  payload: PayloadT;
+  res: Response;
+};
+const sendEmail = ({ type, email, payload, res }: dataSendEmail) => {
   try {
     // create reusable transporter object using the default SMTP transport
     const transporter = nodemailer.createTransport({
@@ -28,25 +28,52 @@ const sendEmail = (
       },
     });
 
-    const source = fs.readFileSync(path.join(__dirname, template), "utf8");
+    const template = () => {
+      switch (type) {
+        case "forgotPassword":
+          return "./template/resetPassword.handlebars";
+        case "resetPassword":
+          return "./template/verifyResetPassword.handlebars";
+        default:
+          return "";
+      }
+    };
+
+    const source = fs.readFileSync(path.join(__dirname, template()), "utf8");
     const compiledTemplate = handlebars.compile(source);
-    const options = () => {
-      return {
-        from: "tungshopman@gmail.com",
-        to: email,
-        subject: subject,
-        html: compiledTemplate(payload),
-      };
+
+    const optionSendMail = () => {
+      switch (type) {
+        case "forgotPassword":
+          return {
+            from: "tungshopman@gmail.com",
+            to: email,
+            subject: "Password Reset Request",
+            html: compiledTemplate(payload),
+          };
+        case "resetPassword":
+          return {
+            from: "tungshopman@gmail.com",
+            to: email,
+            subject: "Password Reset Successfully",
+            html: compiledTemplate(payload),
+          };
+        default:
+          return {
+            from: "tungshopman@gmail.com",
+            to: "",
+          };
+      }
     };
     // Send email
-    transporter.sendMail(options(), (error, info) => {
+    transporter.sendMail(optionSendMail(), (error) => {
       if (error) {
         return res.status(400).json({
           error: error,
         });
       } else {
         return res.status(200).json({
-          success: "Success",
+          message: "Success !",
         });
       }
     });
