@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import { isEmpty, omit } from "lodash";
 import { sendEmail } from "../../utils/sendEmail";
 import { tokenT } from "../../types/token";
-import { User as UserT } from "../../types/user";
+import { UserT } from "../../types/user";
 
 const JWTSecret = process.env.JWT_SECRET as string;
 const bcryptSalt = process.env.BCRYPT_SALT;
@@ -110,7 +110,7 @@ const forgotPassword = async (
   const { email } = req.body;
 
   try {
-    const user: any = await User.findOne({ email: email });
+    const user: UserT | null = await User.findOne({ email: email });
 
     if (isEmpty(user)) {
       return res.status(400).json({

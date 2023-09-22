@@ -1,8 +1,8 @@
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { User } from "../types/user";
+import { UserT } from "../types/user";
 
 type UsersT = {
-  user: User;
+  user: UserT;
 };
 
 const getUserFromToken = (token: string) => {

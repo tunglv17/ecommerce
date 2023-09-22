@@ -11,6 +11,7 @@ const categoriesSchema = new Schema(
     thumbnail: { type: String, required: true },
     images: { type: Array, required: true },
     size: { type: Array, required: false },
+    color: { type: Array, required: false },
     categoryId: { type: ObjectId, ref: "Categories", required: true },
   },
   {

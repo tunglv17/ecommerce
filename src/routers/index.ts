@@ -4,6 +4,7 @@ import filesRouter from "./files";
 import productsRouter from "./products";
 import authRouter from "./authenticate";
 import cartRouter from "./cart";
+import orderRouter from "./order";
 
 const routerApp = (app: Express) => {
   app.use("/api", categoriesRouter);
@@ -11,6 +12,7 @@ const routerApp = (app: Express) => {
   app.use("/api", productsRouter);
   app.use("/api", authRouter);
   app.use("/api", cartRouter);
+  app.use("/api", orderRouter);
 };
 
 export default routerApp;
